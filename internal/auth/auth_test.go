@@ -11,7 +11,7 @@ func TestTokenRoundTrip(t *testing.T) {
 	tm := NewTokenManager("super-secret", time.Hour)
 	id := uuid.New()
 
-	token, expiresAt, err := tm.Generate(id, "sam@hybreed.app")
+	token, expiresAt, err := tm.Generate(id, "alex.carter@hybreed.app")
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestTokenRoundTrip(t *testing.T) {
 	if gotID != id {
 		t.Errorf("id mismatch: got %s want %s", gotID, id)
 	}
-	if gotEmail != "sam@hybreed.app" {
+	if gotEmail != "alex.carter@hybreed.app" {
 		t.Errorf("email mismatch: got %s", gotEmail)
 	}
 }
@@ -91,7 +91,9 @@ func TestGenerateOTPIsSixDigits(t *testing.T) {
 }
 
 func TestSha256HexDeterministic(t *testing.T) {
-	if sha256hex("123456") != sha256hex("123456") {
+	first := sha256hex("123456")
+	second := sha256hex("123456")
+	if first != second {
 		t.Error("hash should be deterministic")
 	}
 	if sha256hex("123456") == sha256hex("654321") {

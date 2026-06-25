@@ -30,6 +30,8 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Post("/refresh", h.refresh)
 	r.Post("/logout", h.logout)
 	r.Post("/social", h.social)
+	r.Post("/forgot", h.forgot)
+	r.Post("/reset", h.reset)
 
 	r.Group(func(pr chi.Router) {
 		pr.Use(h.authMW)
@@ -156,6 +158,39 @@ func (h *Handler) social(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	session, err := h.svc.Social(r.Context(), SocialInput(req), r.UserAgent())
+	if err != nil {
+		httpx.WriteError(w, h.log, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, session)
+}
+
+func (h *Handler) forgot(w http.ResponseWriter, r *http.Request) {
+	var req emailRequest
+	if err := httpx.Decode(w, r, &req); err != nil {
+		httpx.Error(w, err)
+		return
+	}
+	if err := h.svc.RequestPasswordReset(r.Context(), req.Email); err != nil {
+		httpx.WriteError(w, h.log, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]bool{"sent": true})
+}
+
+type resetRequest struct {
+	Email    string `json:"email"`
+	Code     string `json:"code"`
+	Password string `json:"password"`
+}
+
+func (h *Handler) reset(w http.ResponseWriter, r *http.Request) {
+	var req resetRequest
+	if err := httpx.Decode(w, r, &req); err != nil {
+		httpx.Error(w, err)
+		return
+	}
+	session, err := h.svc.ResetPassword(r.Context(), req.Email, req.Code, req.Password, r.UserAgent())
 	if err != nil {
 		httpx.WriteError(w, h.log, err)
 		return

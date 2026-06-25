@@ -30,7 +30,7 @@ make docker-seed              # load the demo athlete + food database
 curl localhost:8080/healthz
 ```
 
-Then sign in with the seeded account: **`sam@hybreed.app` / `trainhard`**.
+Then sign in with the seeded account: **`alex.carter@hybreed.app` / `trainhard`**.
 
 ## Quickstart (local)
 

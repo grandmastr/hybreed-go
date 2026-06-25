@@ -7,8 +7,10 @@ services:
       POSTGRES_USER: hybreed
       POSTGRES_PASSWORD: hybreed
       POSTGRES_DB: hybreed
+    # Host port is overridable to avoid clashing with a local Postgres:
+    #   POSTGRES_PORT=5433 docker compose up -d
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -16,12 +18,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
+    # Override REDIS_PORT to avoid clashing with a local Redis.
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -29,6 +33,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   api:
     build:

@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	demoEmail    = "sam@hybreed.app"
-	demoName     = "Sam Okafor"
+	demoEmail    = "alex.carter@hybreed.app"
+	demoName     = "Alex Carter"
 	demoPassword = "trainhard"
 )
 

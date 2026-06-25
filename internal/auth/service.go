@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	purposeVerifyEmail = "verify_email"
+	purposeVerifyEmail   = "verify_email"
+	purposeResetPassword = "reset_password"
 
 	minPasswordLen = 8
 )
@@ -239,6 +240,65 @@ func (s *Service) ResendOTP(ctx context.Context, email string) error {
 	return nil
 }
 
+// RequestPasswordReset issues a password-reset OTP for the account. To avoid
+// leaking which emails are registered, it always reports success — the code is
+// only issued and delivered when an account actually exists.
+func (s *Service) RequestPasswordReset(ctx context.Context, email string) error {
+	email, err := normalizeEmail(email)
+	if err != nil {
+		return err
+	}
+	user, err := s.q.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil // don't reveal whether the email is registered
+		}
+		return fmt.Errorf("lookup user: %w", err)
+	}
+	code, err := s.issueOTP(ctx, s.q, user.ID, purposeResetPassword)
+	if err != nil {
+		return fmt.Errorf("issue otp: %w", err)
+	}
+	s.deliverOTP(user.Email, code)
+	return nil
+}
+
+// ResetPassword consumes the reset OTP, sets a new password, and starts a session.
+// Completing a reset also verifies the email (the user proved address control).
+func (s *Service) ResetPassword(ctx context.Context, email, code, password, userAgent string) (Session, error) {
+	email, err := normalizeEmail(email)
+	if err != nil {
+		return Session{}, err
+	}
+	if len(password) < minPasswordLen {
+		return Session{}, httpx.ErrValidation(fmt.Sprintf("password must be at least %d characters", minPasswordLen))
+	}
+	user, err := s.q.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Session{}, httpx.ErrBadRequest("no pending reset; request a new code")
+		}
+		return Session{}, fmt.Errorf("lookup user: %w", err)
+	}
+	if err := s.consumeOTP(ctx, user.ID, purposeResetPassword, code); err != nil {
+		return Session{}, err
+	}
+	hash, err := HashPassword(password)
+	if err != nil {
+		return Session{}, fmt.Errorf("hash password: %w", err)
+	}
+	if err := s.q.UpdateUserPassword(ctx, store.UpdateUserPasswordParams{ID: user.ID, PasswordHash: store.Ptr(hash)}); err != nil {
+		return Session{}, fmt.Errorf("update password: %w", err)
+	}
+	if !user.EmailVerified {
+		if err := s.q.SetEmailVerified(ctx, user.ID); err != nil {
+			return Session{}, fmt.Errorf("set verified: %w", err)
+		}
+		user.EmailVerified = true
+	}
+	return s.issueSession(ctx, user, userAgent)
+}
+
 // SocialInput carries a stubbed social-login payload.
 //
 // TODO: verify the provider ID token (Apple/Google) server-side before trusting
@@ -269,7 +329,7 @@ func (s *Service) Social(ctx context.Context, in SocialInput, userAgent string) 
 	if errors.Is(err, pgx.ErrNoRows) {
 		name := in.Name
 		if name == "" {
-			name = "Sam Okafor"
+			name = "Alex Carter"
 		}
 		user, err = s.q.CreateUser(ctx, store.CreateUserParams{
 			Name:          name,
