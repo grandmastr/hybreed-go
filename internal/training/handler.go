@@ -38,6 +38,13 @@ func (h *Handler) Routes(r chi.Router) {
 		tr.Patch("/plan/{id}", h.setPlanDone)
 		tr.Delete("/plan/{id}", h.deletePlan)
 	})
+	r.Route("/routines", func(rr chi.Router) {
+		rr.Get("/", h.listRoutines)
+		rr.Post("/", h.createRoutine)
+		rr.Get("/{id}", h.getRoutine)
+		rr.Put("/{id}", h.updateRoutine)
+		rr.Delete("/{id}", h.deleteRoutine)
+	})
 }
 
 func (h *Handler) listActivities(w http.ResponseWriter, r *http.Request) {

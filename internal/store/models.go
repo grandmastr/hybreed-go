@@ -145,6 +145,25 @@ type RefreshSession struct {
 	CreatedAt pgtype.Timestamptz `json:"createdAt"`
 }
 
+type Routine struct {
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"userId"`
+	Name      string             `json:"name"`
+	Note      string             `json:"note"`
+	Position  int32              `json:"position"`
+	CreatedAt pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt pgtype.Timestamptz `json:"updatedAt"`
+}
+
+type RoutineExercise struct {
+	ID         uuid.UUID `json:"id"`
+	RoutineID  uuid.UUID `json:"routineId"`
+	Name       string    `json:"name"`
+	Note       string    `json:"note"`
+	TargetSets int32     `json:"targetSets"`
+	Position   int32     `json:"position"`
+}
+
 type RunDetail struct {
 	ActivityID    uuid.UUID `json:"activityId"`
 	DistanceM     int32     `json:"distanceM"`

@@ -26,6 +26,8 @@ type Querier interface {
 	CreatePersonalRecord(ctx context.Context, arg CreatePersonalRecordParams) (PersonalRecord, error)
 	CreatePlanItem(ctx context.Context, arg CreatePlanItemParams) (PlanItem, error)
 	CreateRefreshSession(ctx context.Context, arg CreateRefreshSessionParams) (RefreshSession, error)
+	CreateRoutine(ctx context.Context, arg CreateRoutineParams) (Routine, error)
+	CreateRoutineExercise(ctx context.Context, arg CreateRoutineExerciseParams) (RoutineExercise, error)
 	// ── Run details ─────────────────────────────────────────────────────────────
 	CreateRunDetail(ctx context.Context, arg CreateRunDetailParams) (RunDetail, error)
 	CreateRunSplit(ctx context.Context, arg CreateRunSplitParams) (RunSplit, error)
@@ -36,11 +38,14 @@ type Querier interface {
 	DeleteMeal(ctx context.Context, arg DeleteMealParams) error
 	DeletePersonalRecord(ctx context.Context, arg DeletePersonalRecordParams) error
 	DeletePlanItem(ctx context.Context, arg DeletePlanItemParams) error
+	DeleteRoutine(ctx context.Context, arg DeleteRoutineParams) error
+	DeleteRoutineExercises(ctx context.Context, routineID uuid.UUID) error
 	GetActiveOTP(ctx context.Context, arg GetActiveOTPParams) (OtpCode, error)
 	GetActivity(ctx context.Context, arg GetActivityParams) (Activity, error)
 	GetFoodByBarcode(ctx context.Context, barcode *string) (Food, error)
 	GetNutritionDay(ctx context.Context, arg GetNutritionDayParams) (NutritionDay, error)
 	GetRefreshSession(ctx context.Context, tokenHash string) (RefreshSession, error)
+	GetRoutine(ctx context.Context, arg GetRoutineParams) (Routine, error)
 	GetRunDetail(ctx context.Context, activityID uuid.UUID) (RunDetail, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
@@ -57,6 +62,8 @@ type Querier interface {
 	ListMealsForDay(ctx context.Context, arg ListMealsForDayParams) ([]Meal, error)
 	ListPersonalRecords(ctx context.Context, userID uuid.UUID) ([]PersonalRecord, error)
 	ListPlanItems(ctx context.Context, arg ListPlanItemsParams) ([]PlanItem, error)
+	ListRoutineExercises(ctx context.Context, routineID uuid.UUID) ([]RoutineExercise, error)
+	ListRoutines(ctx context.Context, userID uuid.UUID) ([]Routine, error)
 	ListRunSplits(ctx context.Context, activityID uuid.UUID) ([]RunSplit, error)
 	LoadByDayInRange(ctx context.Context, arg LoadByDayInRangeParams) ([]LoadByDayInRangeRow, error)
 	LoadByKindInRange(ctx context.Context, arg LoadByKindInRangeParams) ([]LoadByKindInRangeRow, error)
@@ -71,6 +78,7 @@ type Querier interface {
 	SumCaloriesInRange(ctx context.Context, arg SumCaloriesInRangeParams) (int64, error)
 	// ── Training-load rollups ───────────────────────────────────────────────────
 	SumLoadInRange(ctx context.Context, arg SumLoadInRangeParams) (int64, error)
+	UpdateRoutine(ctx context.Context, arg UpdateRoutineParams) (Routine, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
 	UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UserSetting, error)
