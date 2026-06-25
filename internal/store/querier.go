@@ -49,6 +49,7 @@ type Querier interface {
 	InvalidateUserOTPs(ctx context.Context, arg InvalidateUserOTPsParams) error
 	LiftSummary(ctx context.Context, activityID uuid.UUID) (LiftSummaryRow, error)
 	ListActivities(ctx context.Context, arg ListActivitiesParams) ([]Activity, error)
+	ListExerciseLibrary(ctx context.Context) ([]ExerciseLibrary, error)
 	ListExercisesByActivity(ctx context.Context, activityID uuid.UUID) ([]Exercise, error)
 	ListLiftSetsByExercise(ctx context.Context, exerciseID uuid.UUID) ([]LiftSet, error)
 	ListMealItems(ctx context.Context, mealID uuid.UUID) ([]MealItem, error)

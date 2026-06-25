@@ -18,8 +18,8 @@ DELETE FROM activities WHERE id = $1 AND user_id = $2;
 
 -- ── Run details ─────────────────────────────────────────────────────────────
 -- name: CreateRunDetail :one
-INSERT INTO run_details (activity_id, distance_m, duration_s, avg_pace_s_per_km, avg_hr, calories)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO run_details (activity_id, distance_m, duration_s, avg_pace_s_per_km, avg_hr, calories, route)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetRunDetail :one

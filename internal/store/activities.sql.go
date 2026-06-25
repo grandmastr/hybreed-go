@@ -140,9 +140,9 @@ func (q *Queries) CreateLiftSet(ctx context.Context, arg CreateLiftSetParams) (L
 }
 
 const createRunDetail = `-- name: CreateRunDetail :one
-INSERT INTO run_details (activity_id, distance_m, duration_s, avg_pace_s_per_km, avg_hr, calories)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING activity_id, distance_m, duration_s, avg_pace_s_per_km, avg_hr, calories
+INSERT INTO run_details (activity_id, distance_m, duration_s, avg_pace_s_per_km, avg_hr, calories, route)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING activity_id, distance_m, duration_s, avg_pace_s_per_km, avg_hr, calories, route
 `
 
 type CreateRunDetailParams struct {
@@ -152,6 +152,7 @@ type CreateRunDetailParams struct {
 	AvgPaceSPerKm int32     `json:"avgPaceSPerKm"`
 	AvgHr         int32     `json:"avgHr"`
 	Calories      int32     `json:"calories"`
+	Route         []byte    `json:"route"`
 }
 
 // ── Run details ─────────────────────────────────────────────────────────────
@@ -163,6 +164,7 @@ func (q *Queries) CreateRunDetail(ctx context.Context, arg CreateRunDetailParams
 		arg.AvgPaceSPerKm,
 		arg.AvgHr,
 		arg.Calories,
+		arg.Route,
 	)
 	var i RunDetail
 	err := row.Scan(
@@ -172,6 +174,7 @@ func (q *Queries) CreateRunDetail(ctx context.Context, arg CreateRunDetailParams
 		&i.AvgPaceSPerKm,
 		&i.AvgHr,
 		&i.Calories,
+		&i.Route,
 	)
 	return i, err
 }
@@ -249,7 +252,7 @@ func (q *Queries) GetActivity(ctx context.Context, arg GetActivityParams) (Activ
 }
 
 const getRunDetail = `-- name: GetRunDetail :one
-SELECT activity_id, distance_m, duration_s, avg_pace_s_per_km, avg_hr, calories FROM run_details WHERE activity_id = $1
+SELECT activity_id, distance_m, duration_s, avg_pace_s_per_km, avg_hr, calories, route FROM run_details WHERE activity_id = $1
 `
 
 func (q *Queries) GetRunDetail(ctx context.Context, activityID uuid.UUID) (RunDetail, error) {
@@ -262,6 +265,7 @@ func (q *Queries) GetRunDetail(ctx context.Context, activityID uuid.UUID) (RunDe
 		&i.AvgPaceSPerKm,
 		&i.AvgHr,
 		&i.Calories,
+		&i.Route,
 	)
 	return i, err
 }

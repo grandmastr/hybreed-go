@@ -32,6 +32,7 @@ func (h *Handler) Routes(r chi.Router) {
 	})
 	r.Route("/training", func(tr chi.Router) {
 		tr.Get("/load", h.getLoad)
+		tr.Get("/exercises", h.listExerciseLibrary)
 		tr.Get("/plan", h.listPlan)
 		tr.Post("/plan", h.createPlan)
 		tr.Patch("/plan/{id}", h.setPlanDone)
@@ -98,12 +99,13 @@ type createActivityRequest struct {
 	Planned     bool       `json:"planned"`
 	Notes       string     `json:"notes"`
 	Run         *struct {
-		DistanceM     int32      `json:"distanceM"`
-		DurationS     int32      `json:"durationS"`
-		AvgPaceSPerKm int32      `json:"avgPaceSPerKm"`
-		AvgHr         int32      `json:"avgHr"`
-		Calories      int32      `json:"calories"`
-		Splits        []splitReq `json:"splits"`
+		DistanceM     int32       `json:"distanceM"`
+		DurationS     int32       `json:"durationS"`
+		AvgPaceSPerKm int32       `json:"avgPaceSPerKm"`
+		AvgHr         int32       `json:"avgHr"`
+		Calories      int32       `json:"calories"`
+		Splits        []splitReq  `json:"splits"`
+		Route         [][]float64 `json:"route"`
 	} `json:"run"`
 	Lift *struct {
 		Exercises []exerciseReq `json:"exercises"`
@@ -135,6 +137,7 @@ func (h *Handler) createActivity(w http.ResponseWriter, r *http.Request) {
 			AvgPaceSPerKm: req.Run.AvgPaceSPerKm,
 			AvgHr:         req.Run.AvgHr,
 			Calories:      req.Run.Calories,
+			Route:         req.Run.Route,
 		}
 		for _, sp := range req.Run.Splits {
 			run.Splits = append(run.Splits, SplitInput(sp))
@@ -173,6 +176,15 @@ func (h *Handler) deleteActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.NoContent(w)
+}
+
+func (h *Handler) listExerciseLibrary(w http.ResponseWriter, r *http.Request) {
+	items, err := h.svc.ListExerciseLibrary(r.Context())
+	if err != nil {
+		httpx.WriteError(w, h.log, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": items})
 }
 
 func (h *Handler) getLoad(w http.ResponseWriter, r *http.Request) {

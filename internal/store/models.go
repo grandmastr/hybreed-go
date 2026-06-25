@@ -30,6 +30,14 @@ type Exercise struct {
 	Position   int32     `json:"position"`
 }
 
+type ExerciseLibrary struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Muscle    string    `json:"muscle"`
+	Equipment string    `json:"equipment"`
+	Position  int32     `json:"position"`
+}
+
 type Food struct {
 	ID        uuid.UUID          `json:"id"`
 	Name      string             `json:"name"`
@@ -135,6 +143,7 @@ type RunDetail struct {
 	AvgPaceSPerKm int32     `json:"avgPaceSPerKm"`
 	AvgHr         int32     `json:"avgHr"`
 	Calories      int32     `json:"calories"`
+	Route         []byte    `json:"route"`
 }
 
 type RunSplit struct {

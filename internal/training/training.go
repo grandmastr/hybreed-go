@@ -4,6 +4,7 @@ package training
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -37,14 +38,15 @@ func NewService(pool *pgxpool.Pool, q *store.Queries, c *cache.Cache, log *slog.
 // ── DTOs ────────────────────────────────────────────────────────────────────
 
 type RunFields struct {
-	DistanceM  int32   `json:"distanceM"`
-	DistanceKm float64 `json:"distanceKm"`
-	DurationS  int32   `json:"durationS"`
-	Duration   string  `json:"duration"`
-	PaceS      int32   `json:"paceS"`
-	Pace       string  `json:"pace"`
-	AvgHr      int32   `json:"avgHr"`
-	Calories   int32   `json:"calories"`
+	DistanceM  int32       `json:"distanceM"`
+	DistanceKm float64     `json:"distanceKm"`
+	DurationS  int32       `json:"durationS"`
+	Duration   string      `json:"duration"`
+	PaceS      int32       `json:"paceS"`
+	Pace       string      `json:"pace"`
+	AvgHr      int32       `json:"avgHr"`
+	Calories   int32       `json:"calories"`
+	Route      [][]float64 `json:"route,omitempty"`
 }
 
 type Split struct {
@@ -166,6 +168,7 @@ type RunInput struct {
 	AvgHr         int32
 	Calories      int32
 	Splits        []SplitInput
+	Route         [][]float64
 }
 
 type SplitInput struct {
@@ -231,6 +234,7 @@ func (s *Service) CreateActivity(ctx context.Context, userID uuid.UUID, in Creat
 			AvgPaceSPerKm: in.Run.AvgPaceSPerKm,
 			AvgHr:         in.Run.AvgHr,
 			Calories:      in.Run.Calories,
+			Route:         mustRouteJSON(in.Run.Route),
 		}); err != nil {
 			return ActivityDTO{}, fmt.Errorf("create run detail: %w", err)
 		}
@@ -291,6 +295,29 @@ func (s *Service) DeleteActivity(ctx context.Context, userID, id uuid.UUID) erro
 	return nil
 }
 
+// ── Exercise library ──────────────────────────────────────────────────────
+
+// ExerciseLibraryItem is a selectable exercise for the lift logger.
+type ExerciseLibraryItem struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Muscle    string `json:"muscle"`
+	Equipment string `json:"equipment"`
+}
+
+// ListExerciseLibrary returns the catalog of selectable exercises.
+func (s *Service) ListExerciseLibrary(ctx context.Context) ([]ExerciseLibraryItem, error) {
+	rows, err := s.q.ListExerciseLibrary(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list exercise library: %w", err)
+	}
+	out := make([]ExerciseLibraryItem, 0, len(rows))
+	for _, e := range rows {
+		out = append(out, ExerciseLibraryItem{ID: e.ID.String(), Name: e.Name, Muscle: e.Muscle, Equipment: e.Equipment})
+	}
+	return out, nil
+}
+
 func (s *Service) summary(ctx context.Context, a store.Activity) (ActivityDTO, error) {
 	dto := baseActivity(a)
 	switch a.Kind {
@@ -319,6 +346,14 @@ func (s *Service) detail(ctx context.Context, a store.Activity) (ActivityDTO, er
 	}
 	switch a.Kind {
 	case "run":
+		if dto.Run != nil {
+			if rd, err := s.q.GetRunDetail(ctx, a.ID); err == nil && len(rd.Route) > 0 {
+				var route [][]float64
+				if json.Unmarshal(rd.Route, &route) == nil {
+					dto.Run.Route = route
+				}
+			}
+		}
 		splits, err := s.q.ListRunSplits(ctx, a.ID)
 		if err != nil {
 			return ActivityDTO{}, fmt.Errorf("list splits: %w", err)
@@ -359,6 +394,17 @@ func baseActivity(a store.Activity) ActivityDTO {
 		Planned:     a.Planned,
 		Notes:       a.Notes,
 	}
+}
+
+func mustRouteJSON(route [][]float64) []byte {
+	if len(route) == 0 {
+		return []byte("[]")
+	}
+	b, err := json.Marshal(route)
+	if err != nil {
+		return []byte("[]")
+	}
+	return b
 }
 
 func runFields(rd store.RunDetail) *RunFields {
