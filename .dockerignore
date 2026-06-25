@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+.vscode
+bin
+dist
+*.md
+.env
+.env.*
+!.env.example
+Dockerfile
+docker-compose.yml
+.dockerignore
+.DS_Store

@@ -1,0 +1,22 @@
+# Binaries
+/bin/
+/dist/
+hybreed-api
+*.exe
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Go
+*.test
+*.out
+coverage.*
+vendor/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

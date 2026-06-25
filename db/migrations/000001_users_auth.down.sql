@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS refresh_sessions;
+DROP TABLE IF EXISTS otp_codes;
+DROP TABLE IF EXISTS user_settings;
+DROP TABLE IF EXISTS users;

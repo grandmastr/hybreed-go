@@ -1,0 +1,27 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose
+    - misspell
+    - revive
+  settings:
+    revive:
+      rules:
+        # DTO structs are grouped under clear section headers and are
+        # self-documenting; we don't require a doc comment on every export.
+        - name: exported
+          disabled: true
+  exclusions:
+    generated: lax
+    paths:
+      - internal/store # sqlc-generated code
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

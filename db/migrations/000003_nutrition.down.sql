@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS foods;
+DROP TABLE IF EXISTS meal_items;
+DROP TABLE IF EXISTS meals;
+DROP TABLE IF EXISTS nutrition_days;

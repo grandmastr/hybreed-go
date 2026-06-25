@@ -1,0 +1,72 @@
+name: hybreed
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hybreed
+      POSTGRES_PASSWORD: hybreed
+      POSTGRES_DB: hybreed
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hybreed -d hybreed"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
+    environment:
+      ENV: development
+      HTTP_ADDR: ":8080"
+      DATABASE_URL: postgres://hybreed:hybreed@postgres:5432/hybreed?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: dev-only-change-me
+      AUTO_MIGRATE: "true"
+      CORS_ALLOWED_ORIGINS: "*"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # One-off seeder: `docker compose --profile tools run --rm seed`
+  seed:
+    build:
+      context: .
+    entrypoint: ["seed"]
+    environment:
+      DATABASE_URL: postgres://hybreed:hybreed@postgres:5432/hybreed?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: dev-only-change-me
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+
+volumes:
+  pgdata:
+  redisdata:

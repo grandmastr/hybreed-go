@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS personal_records;
+DROP TABLE IF EXISTS plan_items;
+DROP TABLE IF EXISTS lift_sets;
+DROP TABLE IF EXISTS exercises;
+DROP TABLE IF EXISTS run_splits;
+DROP TABLE IF EXISTS run_details;
+DROP TABLE IF EXISTS activities;
