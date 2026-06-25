@@ -72,8 +72,9 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          # Use a build of golangci-lint compiled with Go >= the go.mod target.
-          version: latest
+          # Pinned for reproducibility; must be a build compiled with Go >= the
+          # go.mod target (1.25). v2.12.2 satisfies that.
+          version: v2.12.2
 
       - name: Test
         run: go test -race -coverprofile=coverage.out ./...
