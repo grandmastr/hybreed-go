@@ -74,6 +74,7 @@ type Querier interface {
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
 	UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UserSetting, error)
+	UpsertExerciseLibrary(ctx context.Context, arg UpsertExerciseLibraryParams) error
 	UpsertNutritionDay(ctx context.Context, arg UpsertNutritionDayParams) (NutritionDay, error)
 	WeeklyLoadTrend(ctx context.Context, arg WeeklyLoadTrendParams) ([]WeeklyLoadTrendRow, error)
 }

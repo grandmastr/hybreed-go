@@ -299,21 +299,48 @@ func (s *Service) DeleteActivity(ctx context.Context, userID, id uuid.UUID) erro
 
 // ExerciseLibraryItem is a selectable exercise for the lift logger.
 type ExerciseLibraryItem struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Muscle    string `json:"muscle"`
-	Equipment string `json:"equipment"`
+	ID               string   `json:"id"`
+	Name             string   `json:"name"`
+	Muscle           string   `json:"muscle"`
+	Equipment        string   `json:"equipment"`
+	Difficulty       string   `json:"difficulty,omitempty"`
+	Force            string   `json:"force,omitempty"`
+	SecondaryMuscles []string `json:"secondaryMuscles,omitempty"`
+	Steps            []string `json:"steps,omitempty"`
+	VideoURLs        []string `json:"videoUrls,omitempty"`
+	YoutubeURL       string   `json:"youtubeUrl,omitempty"`
 }
 
-// ListExerciseLibrary returns the catalog of selectable exercises.
+// ListExerciseLibrary returns the catalog of selectable exercises, collapsing
+// the MuscleWiki name variations down to one entry per exercise name.
 func (s *Service) ListExerciseLibrary(ctx context.Context) ([]ExerciseLibraryItem, error) {
 	rows, err := s.q.ListExerciseLibrary(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list exercise library: %w", err)
 	}
+	seen := make(map[string]bool, len(rows))
 	out := make([]ExerciseLibraryItem, 0, len(rows))
 	for _, e := range rows {
-		out = append(out, ExerciseLibraryItem{ID: e.ID.String(), Name: e.Name, Muscle: e.Muscle, Equipment: e.Equipment})
+		if seen[e.Name] {
+			continue
+		}
+		seen[e.Name] = true
+		var secondary, steps, videos []string
+		_ = json.Unmarshal(e.SecondaryMuscles, &secondary)
+		_ = json.Unmarshal(e.Steps, &steps)
+		_ = json.Unmarshal(e.VideoUrls, &videos)
+		out = append(out, ExerciseLibraryItem{
+			ID:               e.ID.String(),
+			Name:             e.Name,
+			Muscle:           e.Muscle,
+			Equipment:        e.Equipment,
+			Difficulty:       e.Difficulty,
+			Force:            e.Force,
+			SecondaryMuscles: secondary,
+			Steps:            steps,
+			VideoURLs:        videos,
+			YoutubeURL:       e.YoutubeUrl,
+		})
 	}
 	return out, nil
 }

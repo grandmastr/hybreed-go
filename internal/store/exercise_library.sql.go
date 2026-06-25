@@ -10,7 +10,7 @@ import (
 )
 
 const listExerciseLibrary = `-- name: ListExerciseLibrary :many
-SELECT id, name, muscle, equipment, position FROM exercise_library ORDER BY muscle, position, name
+SELECT id, name, muscle, equipment, position, external_id, difficulty, force, grips, secondary_muscles, steps, video_urls, youtube_url, details FROM exercise_library ORDER BY muscle, name, position, id
 `
 
 func (q *Queries) ListExerciseLibrary(ctx context.Context) ([]ExerciseLibrary, error) {
@@ -28,6 +28,15 @@ func (q *Queries) ListExerciseLibrary(ctx context.Context) ([]ExerciseLibrary, e
 			&i.Muscle,
 			&i.Equipment,
 			&i.Position,
+			&i.ExternalID,
+			&i.Difficulty,
+			&i.Force,
+			&i.Grips,
+			&i.SecondaryMuscles,
+			&i.Steps,
+			&i.VideoUrls,
+			&i.YoutubeUrl,
+			&i.Details,
 		); err != nil {
 			return nil, err
 		}
@@ -37,4 +46,59 @@ func (q *Queries) ListExerciseLibrary(ctx context.Context) ([]ExerciseLibrary, e
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertExerciseLibrary = `-- name: UpsertExerciseLibrary :exec
+INSERT INTO exercise_library (
+  external_id, name, muscle, equipment, position,
+  difficulty, force, grips, secondary_muscles, steps, video_urls, youtube_url, details
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+ON CONFLICT (external_id) DO UPDATE SET
+  name = EXCLUDED.name,
+  muscle = EXCLUDED.muscle,
+  equipment = EXCLUDED.equipment,
+  position = EXCLUDED.position,
+  difficulty = EXCLUDED.difficulty,
+  force = EXCLUDED.force,
+  grips = EXCLUDED.grips,
+  secondary_muscles = EXCLUDED.secondary_muscles,
+  steps = EXCLUDED.steps,
+  video_urls = EXCLUDED.video_urls,
+  youtube_url = EXCLUDED.youtube_url,
+  details = EXCLUDED.details
+`
+
+type UpsertExerciseLibraryParams struct {
+	ExternalID       int32  `json:"externalId"`
+	Name             string `json:"name"`
+	Muscle           string `json:"muscle"`
+	Equipment        string `json:"equipment"`
+	Position         int32  `json:"position"`
+	Difficulty       string `json:"difficulty"`
+	Force            string `json:"force"`
+	Grips            string `json:"grips"`
+	SecondaryMuscles []byte `json:"secondaryMuscles"`
+	Steps            []byte `json:"steps"`
+	VideoUrls        []byte `json:"videoUrls"`
+	YoutubeUrl       string `json:"youtubeUrl"`
+	Details          string `json:"details"`
+}
+
+func (q *Queries) UpsertExerciseLibrary(ctx context.Context, arg UpsertExerciseLibraryParams) error {
+	_, err := q.db.Exec(ctx, upsertExerciseLibrary,
+		arg.ExternalID,
+		arg.Name,
+		arg.Muscle,
+		arg.Equipment,
+		arg.Position,
+		arg.Difficulty,
+		arg.Force,
+		arg.Grips,
+		arg.SecondaryMuscles,
+		arg.Steps,
+		arg.VideoUrls,
+		arg.YoutubeUrl,
+		arg.Details,
+	)
+	return err
 }

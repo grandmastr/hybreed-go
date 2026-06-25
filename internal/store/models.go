@@ -31,11 +31,20 @@ type Exercise struct {
 }
 
 type ExerciseLibrary struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Muscle    string    `json:"muscle"`
-	Equipment string    `json:"equipment"`
-	Position  int32     `json:"position"`
+	ID               uuid.UUID `json:"id"`
+	Name             string    `json:"name"`
+	Muscle           string    `json:"muscle"`
+	Equipment        string    `json:"equipment"`
+	Position         int32     `json:"position"`
+	ExternalID       int32     `json:"externalId"`
+	Difficulty       string    `json:"difficulty"`
+	Force            string    `json:"force"`
+	Grips            string    `json:"grips"`
+	SecondaryMuscles []byte    `json:"secondaryMuscles"`
+	Steps            []byte    `json:"steps"`
+	VideoUrls        []byte    `json:"videoUrls"`
+	YoutubeUrl       string    `json:"youtubeUrl"`
+	Details          string    `json:"details"`
 }
 
 type Food struct {
