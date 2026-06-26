@@ -4,6 +4,7 @@ package nutrition
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -114,22 +115,64 @@ func (s *Service) GetSummary(ctx context.Context, userID uuid.UUID, day time.Tim
 		return Summary{}, err
 	}
 
-	budget := int64(nd.BaseKcal) + int64(nd.TrainingBonusKcal)
+	// The user's saved goals (Settings › Goals & targets) drive the daily calorie
+	// base and macro targets; fall back to the nutrition_day defaults when unset.
+	base, proteinT, carbsT, fatT := nd.BaseKcal, nd.ProteinTargetG, nd.CarbsTargetG, nd.FatTargetG
+	if g, gErr := s.userGoals(ctx, userID); gErr == nil {
+		if g.CalorieBudget > 0 {
+			base = g.CalorieBudget
+		}
+		if g.ProteinTargetG > 0 {
+			proteinT = g.ProteinTargetG
+		}
+		if g.CarbsTargetG > 0 {
+			carbsT = g.CarbsTargetG
+		}
+		if g.FatTargetG > 0 {
+			fatT = g.FatTargetG
+		}
+	}
+
+	budget := int64(base) + int64(nd.TrainingBonusKcal)
 	return Summary{
 		Day:           store.DateValue(nd.Day).Format("2006-01-02"),
 		Budget:        budget,
-		Base:          nd.BaseKcal,
+		Base:          base,
 		TrainingBonus: nd.TrainingBonusKcal,
 		Consumed:      consumed.Kcal,
 		Remaining:     budget - consumed.Kcal,
 		Macros: Macros{
-			Protein: Macro{G: consumed.ProteinG, Target: nd.ProteinTargetG},
-			Carbs:   Macro{G: consumed.CarbsG, Target: nd.CarbsTargetG},
-			Fat:     Macro{G: consumed.FatG, Target: nd.FatTargetG},
+			Protein: Macro{G: consumed.ProteinG, Target: proteinT},
+			Carbs:   Macro{G: consumed.CarbsG, Target: carbsT},
+			Fat:     Macro{G: consumed.FatG, Target: fatT},
 		},
 		Water: Water{Ml: nd.WaterMl, Target: nd.WaterTargetMl},
 		Meals: meals,
 	}, nil
+}
+
+// goalTargets mirrors the macro-relevant fields of user_settings.goals (jsonb).
+type goalTargets struct {
+	CalorieBudget  int32 `json:"calorieBudget"`
+	ProteinTargetG int32 `json:"proteinTargetG"`
+	CarbsTargetG   int32 `json:"carbsTargetG"`
+	FatTargetG     int32 `json:"fatTargetG"`
+}
+
+// userGoals reads the caller's saved goals from user_settings (zero value when unset).
+func (s *Service) userGoals(ctx context.Context, userID uuid.UUID) (goalTargets, error) {
+	var g goalTargets
+	settings, err := s.q.GetUserSettings(ctx, userID)
+	if err != nil {
+		return g, err
+	}
+	if len(settings.Goals) == 0 {
+		return g, nil
+	}
+	if err := json.Unmarshal(settings.Goals, &g); err != nil {
+		return g, err
+	}
+	return g, nil
 }
 
 // AddWater adds (or subtracts) water for a day and returns the new totals.
