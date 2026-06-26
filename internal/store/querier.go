@@ -45,6 +45,10 @@ type Querier interface {
 	DeleteRoutineExercises(ctx context.Context, routineID uuid.UUID) error
 	GetActiveOTP(ctx context.Context, arg GetActiveOTPParams) (OtpCode, error)
 	GetActivity(ctx context.Context, arg GetActivityParams) (Activity, error)
+	// Consecutive days (ending today or yesterday, UTC) with >=1 logged activity.
+	// Gaps-and-islands: consecutive dates share (date - row_number) as a group key;
+	// the streak is the run that reaches today or yesterday, else 0.
+	GetActivityStreak(ctx context.Context, userID uuid.UUID) (int32, error)
 	GetFoodByBarcode(ctx context.Context, barcode *string) (Food, error)
 	GetNotificationPrefs(ctx context.Context, userID uuid.UUID) ([]byte, error)
 	GetNutritionDay(ctx context.Context, arg GetNutritionDayParams) (NutritionDay, error)
