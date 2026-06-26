@@ -409,6 +409,17 @@ func (s *Service) issueOTP(ctx context.Context, q store.Querier, userID uuid.UUI
 }
 
 func (s *Service) consumeOTP(ctx context.Context, userID uuid.UUID, purpose, code string) error {
+	// Dev-only bypass: while no email/SMS provider is wired, a fixed code
+	// (OTP_DEV_BYPASS_CODE, default "000000") verifies any account. Never active
+	// in production. The real OTP path below is unchanged. TODO: remove once the
+	// mail provider is live.
+	if !s.cfg.IsProduction() && s.cfg.OTPDevBypassCode != "" && code == s.cfg.OTPDevBypassCode {
+		// Clear any pending code so state stays clean; ignore "no rows".
+		_ = s.q.InvalidateUserOTPs(ctx, store.InvalidateUserOTPsParams{UserID: userID, Purpose: purpose})
+		s.log.Warn("otp dev bypass used", "purpose", purpose)
+		return nil
+	}
+
 	otp, err := s.q.GetActiveOTP(ctx, store.GetActiveOTPParams{UserID: userID, Purpose: purpose})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

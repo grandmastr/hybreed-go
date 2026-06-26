@@ -86,9 +86,14 @@ func (q *Queries) GetFoodByBarcode(ctx context.Context, barcode *string) (Food, 
 
 const searchFoods = `-- name: SearchFoods :many
 SELECT id, name, serving, kcal, protein_g, carbs_g, fat_g, barcode, created_at FROM foods
-WHERE name ILIKE '%' || $1::text || '%'
+WHERE name ILIKE ALL (
+        SELECT '%' || w || '%'
+        FROM unnest(string_to_array(lower(btrim($1::text)), ' ')) AS w
+        WHERE w <> ''
+    )
 ORDER BY
-    (name ILIKE $1::text || '%') DESC,  -- prefix matches first
+    (name ILIKE $1::text || '%') DESC,  -- whole-query prefix first
+    length(name),
     name
 LIMIT $2
 `
@@ -98,6 +103,10 @@ type SearchFoodsParams struct {
 	Lim   int32  `json:"lim"`
 }
 
+// Word-order-independent: every whitespace-separated token in the query must
+// appear somewhere in the name, so "greek yogurt" matches "Yogurt, Greek, plain".
+// Shorter names rank higher (less qualified = more likely what the user meant).
+// The caller must reject an empty query (ILIKE ALL over an empty set is TRUE).
 func (q *Queries) SearchFoods(ctx context.Context, arg SearchFoodsParams) ([]Food, error) {
 	rows, err := q.db.Query(ctx, searchFoods, arg.Query, arg.Lim)
 	if err != nil {

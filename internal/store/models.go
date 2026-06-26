@@ -135,6 +135,15 @@ type PlanItem struct {
 	CreatedAt pgtype.Timestamptz `json:"createdAt"`
 }
 
+type PushToken struct {
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"userId"`
+	Token     string             `json:"token"`
+	Platform  string             `json:"platform"`
+	CreatedAt pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt pgtype.Timestamptz `json:"updatedAt"`
+}
+
 type RefreshSession struct {
 	ID        uuid.UUID          `json:"id"`
 	UserID    uuid.UUID          `json:"userId"`
@@ -194,13 +203,16 @@ type User struct {
 	LoadTarget    int32              `json:"loadTarget"`
 	CreatedAt     pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt     pgtype.Timestamptz `json:"updatedAt"`
+	Dob           pgtype.Date        `json:"dob"`
 }
 
 type UserSetting struct {
-	UserID        uuid.UUID          `json:"userId"`
-	Units         string             `json:"units"`
-	Notifications bool               `json:"notifications"`
-	ConnectedApps int32              `json:"connectedApps"`
-	BodyWeightKg  pgtype.Numeric     `json:"bodyWeightKg"`
-	UpdatedAt     pgtype.Timestamptz `json:"updatedAt"`
+	UserID            uuid.UUID          `json:"userId"`
+	Units             string             `json:"units"`
+	Notifications     bool               `json:"notifications"`
+	ConnectedApps     int32              `json:"connectedApps"`
+	BodyWeightKg      pgtype.Numeric     `json:"bodyWeightKg"`
+	UpdatedAt         pgtype.Timestamptz `json:"updatedAt"`
+	NotificationPrefs []byte             `json:"notificationPrefs"`
+	Goals             []byte             `json:"goals"`
 }

@@ -15,7 +15,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (name, email, password_hash, email_verified)
 VALUES ($1, $2, $3, $4)
-RETURNING id, name, email, password_hash, email_verified, handle, status, streak, load_target, created_at, updated_at
+RETURNING id, name, email, password_hash, email_verified, handle, status, streak, load_target, created_at, updated_at, dob
 `
 
 type CreateUserParams struct {
@@ -45,6 +45,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.LoadTarget,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Dob,
 	)
 	return i, err
 }
@@ -52,7 +53,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 const createUserSettings = `-- name: CreateUserSettings :one
 INSERT INTO user_settings (user_id) VALUES ($1)
 ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
-RETURNING user_id, units, notifications, connected_apps, body_weight_kg, updated_at
+RETURNING user_id, units, notifications, connected_apps, body_weight_kg, updated_at, notification_prefs, goals
 `
 
 func (q *Queries) CreateUserSettings(ctx context.Context, userID uuid.UUID) (UserSetting, error) {
@@ -65,12 +66,14 @@ func (q *Queries) CreateUserSettings(ctx context.Context, userID uuid.UUID) (Use
 		&i.ConnectedApps,
 		&i.BodyWeightKg,
 		&i.UpdatedAt,
+		&i.NotificationPrefs,
+		&i.Goals,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, email, password_hash, email_verified, handle, status, streak, load_target, created_at, updated_at FROM users WHERE email = $1
+SELECT id, name, email, password_hash, email_verified, handle, status, streak, load_target, created_at, updated_at, dob FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -88,12 +91,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.LoadTarget,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Dob,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, name, email, password_hash, email_verified, handle, status, streak, load_target, created_at, updated_at FROM users WHERE id = $1
+SELECT id, name, email, password_hash, email_verified, handle, status, streak, load_target, created_at, updated_at, dob FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -111,12 +115,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.LoadTarget,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Dob,
 	)
 	return i, err
 }
 
 const getUserSettings = `-- name: GetUserSettings :one
-SELECT user_id, units, notifications, connected_apps, body_weight_kg, updated_at FROM user_settings WHERE user_id = $1
+SELECT user_id, units, notifications, connected_apps, body_weight_kg, updated_at, notification_prefs, goals FROM user_settings WHERE user_id = $1
 `
 
 func (q *Queries) GetUserSettings(ctx context.Context, userID uuid.UUID) (UserSetting, error) {
@@ -129,6 +134,8 @@ func (q *Queries) GetUserSettings(ctx context.Context, userID uuid.UUID) (UserSe
 		&i.ConnectedApps,
 		&i.BodyWeightKg,
 		&i.UpdatedAt,
+		&i.NotificationPrefs,
+		&i.Goals,
 	)
 	return i, err
 }
@@ -162,17 +169,19 @@ SET name        = COALESCE($1, name),
     handle      = COALESCE($2, handle),
     status      = COALESCE($3, status),
     load_target = COALESCE($4, load_target),
+    dob         = COALESCE($5, dob),
     updated_at  = now()
-WHERE id = $5
-RETURNING id, name, email, password_hash, email_verified, handle, status, streak, load_target, created_at, updated_at
+WHERE id = $6
+RETURNING id, name, email, password_hash, email_verified, handle, status, streak, load_target, created_at, updated_at, dob
 `
 
 type UpdateUserProfileParams struct {
-	Name       *string   `json:"name"`
-	Handle     *string   `json:"handle"`
-	Status     *string   `json:"status"`
-	LoadTarget *int32    `json:"loadTarget"`
-	ID         uuid.UUID `json:"id"`
+	Name       *string     `json:"name"`
+	Handle     *string     `json:"handle"`
+	Status     *string     `json:"status"`
+	LoadTarget *int32      `json:"loadTarget"`
+	Dob        pgtype.Date `json:"dob"`
+	ID         uuid.UUID   `json:"id"`
 }
 
 func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error) {
@@ -181,6 +190,7 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		arg.Handle,
 		arg.Status,
 		arg.LoadTarget,
+		arg.Dob,
 		arg.ID,
 	)
 	var i User
@@ -196,6 +206,7 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.LoadTarget,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Dob,
 	)
 	return i, err
 }
@@ -206,9 +217,10 @@ SET units          = COALESCE($1, units),
     notifications  = COALESCE($2, notifications),
     connected_apps = COALESCE($3, connected_apps),
     body_weight_kg = COALESCE($4, body_weight_kg),
+    goals          = COALESCE($5, goals),
     updated_at     = now()
-WHERE user_id = $5
-RETURNING user_id, units, notifications, connected_apps, body_weight_kg, updated_at
+WHERE user_id = $6
+RETURNING user_id, units, notifications, connected_apps, body_weight_kg, updated_at, notification_prefs, goals
 `
 
 type UpdateUserSettingsParams struct {
@@ -216,6 +228,7 @@ type UpdateUserSettingsParams struct {
 	Notifications *bool          `json:"notifications"`
 	ConnectedApps *int32         `json:"connectedApps"`
 	BodyWeightKg  pgtype.Numeric `json:"bodyWeightKg"`
+	Goals         []byte         `json:"goals"`
 	UserID        uuid.UUID      `json:"userId"`
 }
 
@@ -225,6 +238,7 @@ func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettings
 		arg.Notifications,
 		arg.ConnectedApps,
 		arg.BodyWeightKg,
+		arg.Goals,
 		arg.UserID,
 	)
 	var i UserSetting
@@ -235,6 +249,8 @@ func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettings
 		&i.ConnectedApps,
 		&i.BodyWeightKg,
 		&i.UpdatedAt,
+		&i.NotificationPrefs,
+		&i.Goals,
 	)
 	return i, err
 }

@@ -2,6 +2,9 @@
 /bin/
 /dist/
 hybreed-api
+/seed
+/seedexercises
+/seedfoods
 *.exe
 
 # Env / secrets

@@ -25,6 +25,10 @@ type Config struct {
 	RefreshTokenTTL time.Duration `env:"REFRESH_TOKEN_TTL" envDefault:"720h"`
 	OTPTTL          time.Duration `env:"OTP_TTL" envDefault:"10m"`
 	OTPMaxAttempts  int           `env:"OTP_MAX_ATTEMPTS" envDefault:"5"`
+	// OTPDevBypassCode lets a fixed code verify any account while no email/SMS
+	// provider is wired. Ignored in production (see Service.consumeOTP). Set to
+	// "" to disable. TODO: remove once the mail provider is live.
+	OTPDevBypassCode string `env:"OTP_DEV_BYPASS_CODE" envDefault:"000000"`
 
 	CORSAllowedOrigins []string `env:"CORS_ALLOWED_ORIGINS" envSeparator:"," envDefault:"*"`
 }

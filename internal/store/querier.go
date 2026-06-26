@@ -38,11 +38,15 @@ type Querier interface {
 	DeleteMeal(ctx context.Context, arg DeleteMealParams) error
 	DeletePersonalRecord(ctx context.Context, arg DeletePersonalRecordParams) error
 	DeletePlanItem(ctx context.Context, arg DeletePlanItemParams) error
+	DeletePushToken(ctx context.Context, arg DeletePushTokenParams) error
+	// Used by the sender to drop tokens Expo reports as DeviceNotRegistered.
+	DeletePushTokenByValue(ctx context.Context, token string) error
 	DeleteRoutine(ctx context.Context, arg DeleteRoutineParams) error
 	DeleteRoutineExercises(ctx context.Context, routineID uuid.UUID) error
 	GetActiveOTP(ctx context.Context, arg GetActiveOTPParams) (OtpCode, error)
 	GetActivity(ctx context.Context, arg GetActivityParams) (Activity, error)
 	GetFoodByBarcode(ctx context.Context, barcode *string) (Food, error)
+	GetNotificationPrefs(ctx context.Context, userID uuid.UUID) ([]byte, error)
 	GetNutritionDay(ctx context.Context, arg GetNutritionDayParams) (NutritionDay, error)
 	GetRefreshSession(ctx context.Context, tokenHash string) (RefreshSession, error)
 	GetRoutine(ctx context.Context, arg GetRoutineParams) (Routine, error)
@@ -65,6 +69,7 @@ type Querier interface {
 	ListRoutineExercises(ctx context.Context, routineID uuid.UUID) ([]RoutineExercise, error)
 	ListRoutines(ctx context.Context, userID uuid.UUID) ([]Routine, error)
 	ListRunSplits(ctx context.Context, activityID uuid.UUID) ([]RunSplit, error)
+	ListUserPushTokens(ctx context.Context, userID uuid.UUID) ([]PushToken, error)
 	LoadByDayInRange(ctx context.Context, arg LoadByDayInRangeParams) ([]LoadByDayInRangeRow, error)
 	LoadByKindInRange(ctx context.Context, arg LoadByKindInRangeParams) ([]LoadByKindInRangeRow, error)
 	MealOwnedBy(ctx context.Context, arg MealOwnedByParams) (bool, error)
@@ -72,18 +77,27 @@ type Querier interface {
 	MonthlyVolume(ctx context.Context, arg MonthlyVolumeParams) (int64, error)
 	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error
 	RevokeRefreshSession(ctx context.Context, tokenHash string) error
+	// Word-order-independent: every whitespace-separated token in the query must
+	// appear somewhere in the name, so "greek yogurt" matches "Yogurt, Greek, plain".
+	// Shorter names rank higher (less qualified = more likely what the user meant).
+	// The caller must reject an empty query (ILIKE ALL over an empty set is TRUE).
 	SearchFoods(ctx context.Context, arg SearchFoodsParams) ([]Food, error)
 	SetEmailVerified(ctx context.Context, id uuid.UUID) error
 	SetPlanItemDone(ctx context.Context, arg SetPlanItemDoneParams) (PlanItem, error)
 	SumCaloriesInRange(ctx context.Context, arg SumCaloriesInRangeParams) (int64, error)
 	// ── Training-load rollups ───────────────────────────────────────────────────
 	SumLoadInRange(ctx context.Context, arg SumLoadInRangeParams) (int64, error)
+	UpdateNotificationPrefs(ctx context.Context, arg UpdateNotificationPrefsParams) ([]byte, error)
 	UpdateRoutine(ctx context.Context, arg UpdateRoutineParams) (Routine, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
 	UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UserSetting, error)
 	UpsertExerciseLibrary(ctx context.Context, arg UpsertExerciseLibraryParams) error
+	// Idempotent catalogue insert keyed on lower(name) (see idx_foods_lower_name).
+	UpsertFood(ctx context.Context, arg []UpsertFoodParams) *UpsertFoodBatchResults
 	UpsertNutritionDay(ctx context.Context, arg UpsertNutritionDayParams) (NutritionDay, error)
+	// Register a device's push token to a user; re-owns the device on conflict.
+	UpsertPushToken(ctx context.Context, arg UpsertPushTokenParams) error
 	WeeklyLoadTrend(ctx context.Context, arg WeeklyLoadTrendParams) ([]WeeklyLoadTrendRow, error)
 }
 

@@ -21,6 +21,7 @@ SET name        = COALESCE(sqlc.narg('name'), name),
     handle      = COALESCE(sqlc.narg('handle'), handle),
     status      = COALESCE(sqlc.narg('status'), status),
     load_target = COALESCE(sqlc.narg('load_target'), load_target),
+    dob         = COALESCE(sqlc.narg('dob'), dob),
     updated_at  = now()
 WHERE id = sqlc.arg('id')
 RETURNING *;
@@ -39,6 +40,7 @@ SET units          = COALESCE(sqlc.narg('units'), units),
     notifications  = COALESCE(sqlc.narg('notifications'), notifications),
     connected_apps = COALESCE(sqlc.narg('connected_apps'), connected_apps),
     body_weight_kg = COALESCE(sqlc.narg('body_weight_kg'), body_weight_kg),
+    goals          = COALESCE(sqlc.narg('goals'), goals),
     updated_at     = now()
 WHERE user_id = sqlc.arg('user_id')
 RETURNING *;

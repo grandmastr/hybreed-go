@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -308,6 +309,11 @@ func (s *Service) SearchFoods(ctx context.Context, query string, limit int) ([]F
 	if limit <= 0 {
 		limit = defaultSearchN
 	}
+	// An empty query would match the whole catalogue (ILIKE ALL of an empty set),
+	// so short-circuit to no results.
+	if strings.TrimSpace(query) == "" {
+		return []FoodDTO{}, nil
+	}
 	key := fmt.Sprintf("foods:search:%d:%s", limit, query)
 	var cached []FoodDTO
 	if s.cache.Get(ctx, key, &cached) {
@@ -335,12 +341,47 @@ func (s *Service) GetByBarcode(ctx context.Context, code string) (FoodDTO, error
 	f, err := s.q.GetFoodByBarcode(ctx, store.Ptr(code))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return FoodDTO{}, httpx.ErrNotFound("no product for this barcode")
+			return s.barcodeFromOpenFoodFacts(ctx, key, code)
 		}
 		return FoodDTO{}, fmt.Errorf("get food by barcode: %w", err)
 	}
 	dto := toFoodDTO(f)
 	s.cache.Set(ctx, key, dto, barcodeTTL)
+	return dto, nil
+}
+
+// barcodeFromOpenFoodFacts handles a local barcode miss: it asks Open Food Facts,
+// and on a hit persists the product into the foods table (so future scans are a
+// DB lookup) before returning it. A 404 maps to "no product for this barcode".
+func (s *Service) barcodeFromOpenFoodFacts(ctx context.Context, cacheKey, code string) (FoodDTO, error) {
+	off, err := lookupOpenFoodFacts(ctx, code)
+	if err != nil {
+		s.log.Warn("open food facts lookup failed", "barcode", code, "err", err)
+		return FoodDTO{}, httpx.ErrNotFound("no product for this barcode")
+	}
+	if off == nil {
+		return FoodDTO{}, httpx.ErrNotFound("no product for this barcode")
+	}
+
+	created, err := s.q.CreateFood(ctx, store.CreateFoodParams{
+		Name:     off.Name,
+		Serving:  "100 g",
+		Kcal:     off.Kcal,
+		ProteinG: store.Num(off.ProteinG),
+		CarbsG:   store.Num(off.CarbsG),
+		FatG:     store.Num(off.FatG),
+		Barcode:  store.Ptr(code),
+	})
+	if err != nil {
+		// Couldn't persist (e.g. a concurrent insert won the unique barcode);
+		// still return the product we fetched.
+		s.log.Warn("persist open food facts product failed", "barcode", code, "err", err)
+		dto := FoodDTO{Name: off.Name, Serving: "100 g", Kcal: off.Kcal, ProteinG: off.ProteinG, CarbsG: off.CarbsG, FatG: off.FatG, Barcode: store.Ptr(code)}
+		s.cache.Set(ctx, cacheKey, dto, barcodeTTL)
+		return dto, nil
+	}
+	dto := toFoodDTO(created)
+	s.cache.Set(ctx, cacheKey, dto, barcodeTTL)
 	return dto, nil
 }
 

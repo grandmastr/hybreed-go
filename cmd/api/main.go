@@ -19,6 +19,7 @@ import (
 	"github.com/grandmastr/hybreed-go/internal/config"
 	"github.com/grandmastr/hybreed-go/internal/database"
 	"github.com/grandmastr/hybreed-go/internal/home"
+	"github.com/grandmastr/hybreed-go/internal/notify"
 	"github.com/grandmastr/hybreed-go/internal/nutrition"
 	"github.com/grandmastr/hybreed-go/internal/store"
 	"github.com/grandmastr/hybreed-go/internal/training"
@@ -73,7 +74,8 @@ func run() error {
 	authMW := auth.Authenticator(tokens)
 
 	authSvc := auth.NewService(pool, q, tokens, cfg, logger)
-	athleteSvc := athlete.NewService(q, logger)
+	notifySvc := notify.NewService(q, logger)
+	athleteSvc := athlete.NewService(q, notifySvc, logger)
 	trainingSvc := training.NewService(pool, q, redis, logger)
 	nutritionSvc := nutrition.NewService(pool, q, redis, logger)
 	homeSvc := home.NewService(trainingSvc, nutritionSvc, logger)
