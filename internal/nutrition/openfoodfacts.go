@@ -56,7 +56,7 @@ func lookupOpenFoodFacts(ctx context.Context, code string) (*offFood, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
 	}
