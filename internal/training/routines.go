@@ -169,7 +169,7 @@ type routineRequest struct {
 }
 
 func (req routineRequest) toInput() RoutineInput {
-	return RoutineInput{Name: req.Name, Note: req.Note, Exercises: req.Exercises}
+	return RoutineInput(req)
 }
 
 func (h *Handler) listRoutines(w http.ResponseWriter, r *http.Request) {
