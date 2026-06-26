@@ -533,11 +533,18 @@ func (s *Service) GetLoadSummary(ctx context.Context, userID uuid.UUID) (LoadSum
 		return LoadSummary{}, fmt.Errorf("load by kind: %w", err)
 	}
 
+	// Streak is computed from activity history (consecutive active days), not a
+	// stored counter; fall back to 0 if the lookup fails.
+	streak, err := s.q.GetActivityStreak(ctx, userID)
+	if err != nil {
+		streak = 0
+	}
+
 	summary := LoadSummary{
 		TodayLoad:  todayLoad,
 		WeeklyLoad: weeklyLoad,
 		LoadTarget: user.LoadTarget,
-		Streak:     user.Streak,
+		Streak:     streak,
 		Status:     user.Status,
 		Rest:       recoveryScore(todayLoad, user.LoadTarget),
 		Balance:    balance(kindRows),

@@ -104,3 +104,25 @@ WHERE a.user_id = $1 AND a.performed_at >= sqlc.arg('start') AND a.performed_at 
 SELECT COUNT(*)::bigint AS sessions
 FROM activities
 WHERE user_id = $1 AND performed_at >= sqlc.arg('start') AND performed_at < sqlc.arg('stop');
+
+-- name: GetActivityStreak :one
+-- Consecutive days (ending today or yesterday, UTC) with >=1 logged activity.
+-- Gaps-and-islands: consecutive dates share (date - row_number) as a group key;
+-- the streak is the run that reaches today or yesterday, else 0.
+WITH days AS (
+    SELECT DISTINCT (performed_at AT TIME ZONE 'UTC')::date AS d
+    FROM activities
+    WHERE user_id = $1
+),
+islands AS (
+    SELECT d, (d - (ROW_NUMBER() OVER (ORDER BY d))::int * INTERVAL '1 day')::date AS grp
+    FROM days
+),
+runs AS (
+    SELECT grp, COUNT(*)::int AS cnt, MAX(d) AS end_d
+    FROM islands
+    GROUP BY grp
+)
+SELECT COALESCE(MAX(cnt), 0)::int AS streak
+FROM runs
+WHERE end_d >= ((now() AT TIME ZONE 'UTC')::date - 1);

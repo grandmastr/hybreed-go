@@ -251,6 +251,36 @@ func (q *Queries) GetActivity(ctx context.Context, arg GetActivityParams) (Activ
 	return i, err
 }
 
+const getActivityStreak = `-- name: GetActivityStreak :one
+WITH days AS (
+    SELECT DISTINCT (performed_at AT TIME ZONE 'UTC')::date AS d
+    FROM activities
+    WHERE user_id = $1
+),
+islands AS (
+    SELECT d, (d - (ROW_NUMBER() OVER (ORDER BY d))::int * INTERVAL '1 day')::date AS grp
+    FROM days
+),
+runs AS (
+    SELECT grp, COUNT(*)::int AS cnt, MAX(d) AS end_d
+    FROM islands
+    GROUP BY grp
+)
+SELECT COALESCE(MAX(cnt), 0)::int AS streak
+FROM runs
+WHERE end_d >= ((now() AT TIME ZONE 'UTC')::date - 1)
+`
+
+// Consecutive days (ending today or yesterday, UTC) with >=1 logged activity.
+// Gaps-and-islands: consecutive dates share (date - row_number) as a group key;
+// the streak is the run that reaches today or yesterday, else 0.
+func (q *Queries) GetActivityStreak(ctx context.Context, userID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, getActivityStreak, userID)
+	var streak int32
+	err := row.Scan(&streak)
+	return streak, err
+}
+
 const getRunDetail = `-- name: GetRunDetail :one
 SELECT activity_id, distance_m, duration_s, avg_pace_s_per_km, avg_hr, calories, route FROM run_details WHERE activity_id = $1
 `

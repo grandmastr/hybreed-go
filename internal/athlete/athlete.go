@@ -141,8 +141,13 @@ func (s *Service) GetProfile(ctx context.Context, userID uuid.UUID) (ProfileDTO,
 	}
 	var dob *string
 	if user.Dob.Valid {
-		s := user.Dob.Time.Format("2006-01-02")
-		dob = &s
+		d := user.Dob.Time.Format("2006-01-02")
+		dob = &d
+	}
+	// Streak is derived from activity history (consecutive active days).
+	streak, err := s.q.GetActivityStreak(ctx, userID)
+	if err != nil {
+		streak = 0
 	}
 	return ProfileDTO{
 		ID:           user.ID.String(),
@@ -150,7 +155,7 @@ func (s *Service) GetProfile(ctx context.Context, userID uuid.UUID) (ProfileDTO,
 		Email:        user.Email,
 		Handle:       user.Handle,
 		Status:       user.Status,
-		Streak:       user.Streak,
+		Streak:       streak,
 		LoadTarget:   user.LoadTarget,
 		BodyWeightKg: numPtr(settings.BodyWeightKg),
 		Dob:          dob,
