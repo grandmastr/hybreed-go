@@ -60,6 +60,8 @@ type Goals struct {
 	WeeklyDistanceKm int32 `json:"weeklyDistanceKm"`
 	CalorieBudget    int32 `json:"calorieBudget"`
 	ProteinTargetG   int32 `json:"proteinTargetG"`
+	CarbsTargetG     int32 `json:"carbsTargetG"`
+	FatTargetG       int32 `json:"fatTargetG"`
 }
 
 // NotifyPrefs are the per-category notification toggles (Settings ›
